@@ -25,10 +25,10 @@ app.MapGet("/", () =>
 
     string html = $$"""
 <!doctype html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-  <meta charset=\"utf-8\" />
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MainApp</title>
   <style>
     body { font-family: sans-serif; margin: 24px; }
@@ -40,10 +40,10 @@ app.MapGet("/", () =>
   <h1>MainApp</h1>
   <p>This page embeds EmbeddedPages via an iframe. JWT is delivered via <code>postMessage</code> (not in URL).</p>
 
-  <iframe id=\"embeddedFrame\" src=\"{{iframeUrl}}\" referrerpolicy=\"no-referrer\"></iframe>
+  <iframe id="embeddedFrame" src="{{iframeUrl}}" referrerpolicy="no-referrer"></iframe>
 
   <h2>Debug</h2>
-  <pre id=\"debug\">Waiting for iframe handshake...</pre>
+  <pre id="debug">Waiting for iframe handshake...</pre>
 
   <script>
     const embeddedOrigin = {{JsonSerializer.Serialize(embeddedOrigin)}};
@@ -51,7 +51,7 @@ app.MapGet("/", () =>
     const frameEl = document.getElementById('embeddedFrame');
 
     function log(msg) {
-      debugEl.textContent += "\\n" + msg;
+      debugEl.textContent += "\n" + msg;
     }
 
     window.addEventListener('message', async (event) => {
