@@ -1,4 +1,4 @@
-POC: JWT + iframe (MainApp -> EmbeddedPages) progress as of 2026-01-13
+POC: JWT + iframe (MainApp -> EmbeddedPages) progress as of 2026-01-14
 
 DONE
 - Created solution: JwtIframePoc.sln
@@ -7,9 +7,14 @@ DONE
   - EmbeddedPages (ASP.NET Core Empty, net8.0)
 - Added NuGet packages:
   - System.IdentityModel.Tokens.Jwt to both projects
-- Added Keys folder placeholder:
+- Added Keys folder:
   - Keys/.gitkeep
-  - NOTE: PEM files are NOT present yet. You said you will provide them.
+  - Keys/mainapp-private.pem (copied by user)
+  - Keys/embeddedpages-public.pem (copied by user)
+
+- Added VS Code / Windsurf config:
+  - .vscode/launch.json (compound launch created; .NET debugging not supported in Windsurf)
+  - .vscode/tasks.json (build + run tasks)
 
 CONFIG ADDED
 - MainApp/appsettings.json:
@@ -30,12 +35,12 @@ CONFIG ADDED
   - Jwt:SecretClaimName = SecretParam
   - Jwt:SecretClaimValue = SecretValue
 
-IMPLEMENTED CODE (NOT YET RUN/VERIFIED)
+IMPLEMENTED CODE
 - MainApp/Program.cs
   - GET / : returns HTML that embeds iframe to EmbeddedPages with query params Param1..3.
   - GET /api/token : reads RSA private key PEM (configured path), mints RS256 JWT with claim SecretParam=SecretValue.
   - No JWT in URL: parent waits for iframe "ready" postMessage, then calls /api/token and sends token to iframe via postMessage.
-  - NOTE: raw string brace issues were fixed by switching to $$""" and adjusting braces.
+  - FIX: iframe src HTML was wrong due to raw string escaping (\" in raw string). Removed escapes so src is a valid absolute URL.
 
 - EmbeddedPages/Program.cs
   - Middleware sets CSP header: Content-Security-Policy: frame-ancestors {AllowedParentOrigin}
@@ -51,37 +56,43 @@ IMPLEMENTED CODE (NOT YET RUN/VERIFIED)
     - validates issuer/audience/signature/lifetime
     - checks claim SecretParam==SecretValue
     - returns 200 OK with basic info, otherwise 401
+  - FIX: validation no longer casts validated token to JwtSecurityToken; uses ClaimsPrincipal from ValidateToken (more robust).
+
+BUILD
+- dotnet build JwtIframePoc.sln (clean)
 
 OPEN ITEMS / NEXT STEPS
-1) Add PEM files (provided by you) into solution root Keys/:
-   - Keys/mainapp-private.pem
-   - Keys/embeddedpages-public.pem
+1) Run both apps:
+   - Preferred (Windsurf): Tasks: Run Task -> "run: Both apps (watch, https)"
+   - Manual:
+     - dotnet watch run --project .\EmbeddedPages\EmbeddedPages.csproj --launch-profile https
+     - dotnet watch run --project .\MainApp\MainApp.csproj --launch-profile https
 
-2) Verify compilation:
-   - dotnet build JwtIframePoc.sln
-
-3) Run both apps (two terminals):
-   - MainApp: https://localhost:7053 (from launchSettings)
-   - EmbeddedPages: https://localhost:7129
-
-4) Navigate to MainApp / and confirm:
-   - iframe loads /embedded?Param1=Value1&Param2=Value2&Param3=Value3
+2) Navigate to MainApp / and confirm end-to-end:
+   - https://localhost:7053/
+   - iframe src points to https://localhost:7129/embedded?Param1=Value1&Param2=Value2&Param3=Value3
    - iframe sends ready
    - parent fetches /api/token
    - parent sends token to iframe via postMessage
    - iframe POSTs /api/validate with Bearer token
-   - response shows HTTP 200 and JSON with valid=true and SecretParam
+   - response shows HTTP 200 and JSON with valid=true and secretClaim=SecretValue
+
+3) If build fails with file locked (MainApp.exe):
+   - stop the running app(s) first (Ctrl+C / stop task) then rebuild
+
+4) If HTTPS warnings block iframe/navigation:
+   - trust dev cert: dotnet dev-certs https --trust
 
 5) If iframe does NOT load:
    - check browser console for postMessage origin mismatch
-   - check EmbeddedPages CSP header frame-ancestors allows MainApp origin
+   - check EmbeddedPages CSP frame-ancestors allows MainApp origin
    - ensure both are using https (origins include scheme)
-
-6) Small cleanup to consider (optional for POC):
-   - In EmbeddedPages, remove unused variable "ex" in catch
-   - Add minimal error text response on 401 for easier demo
 
 NOTES
 - JWT is NOT passed via URL.
 - Token transport uses industry-standard Web Messaging (window.postMessage) between parent and iframe.
 - Validation is server-side in EmbeddedPages using Bearer header.
+
+WINDSURF NOTE
+- VS Code style .NET debugging is not available in Windsurf (VS Code fork license limitation).
+- Use tasks (dotnet watch), logs, and browser devtools; or debug in Visual Studio / Rider if you need breakpoints.
