@@ -81,7 +81,7 @@ PEM files (RSA-256) are expected at:
 - `MainApp/Program.cs` – MainApp endpoints and HTML with iframe + postMessage JS
 - `EmbeddedPages/Program.cs` – EmbeddedPages page, CSP, and JWT validation endpoint
 - `.vscode/tasks.json` – Run tasks for both apps (dotnet watch)
-- `Keys/` – RSA-256 PEM key files (not in repo; you must add them)
+- `Keys/` – RSA-256 PEM key files (example development keys are included; replace with your own keys for real deployments)
 
 ## Troubleshooting
 
