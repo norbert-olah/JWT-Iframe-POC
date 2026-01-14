@@ -1,0 +1,87 @@
+POC: JWT + iframe (MainApp -> EmbeddedPages) progress as of 2026-01-13
+
+DONE
+- Created solution: JwtIframePoc.sln
+- Created projects:
+  - MainApp (ASP.NET Core Empty, net8.0)
+  - EmbeddedPages (ASP.NET Core Empty, net8.0)
+- Added NuGet packages:
+  - System.IdentityModel.Tokens.Jwt to both projects
+- Added Keys folder placeholder:
+  - Keys/.gitkeep
+  - NOTE: PEM files are NOT present yet. You said you will provide them.
+
+CONFIG ADDED
+- MainApp/appsettings.json:
+  - Iframe:EmbeddedOrigin = https://localhost:7129
+  - Iframe:EmbeddedPath = /embedded
+  - Jwt:Issuer = MainApp
+  - Jwt:Audience = EmbeddedPages
+  - Jwt:PrivateKeyPemPath = ../Keys/mainapp-private.pem
+  - Jwt:SecretClaimName = SecretParam
+  - Jwt:SecretClaimValue = SecretValue
+  - Jwt:TokenLifetimeMinutes = 5
+
+- EmbeddedPages/appsettings.json:
+  - Security:AllowedParentOrigin = https://localhost:7053
+  - Jwt:Issuer = MainApp
+  - Jwt:Audience = EmbeddedPages
+  - Jwt:PublicKeyPemPath = ../Keys/embeddedpages-public.pem
+  - Jwt:SecretClaimName = SecretParam
+  - Jwt:SecretClaimValue = SecretValue
+
+IMPLEMENTED CODE (NOT YET RUN/VERIFIED)
+- MainApp/Program.cs
+  - GET / : returns HTML that embeds iframe to EmbeddedPages with query params Param1..3.
+  - GET /api/token : reads RSA private key PEM (configured path), mints RS256 JWT with claim SecretParam=SecretValue.
+  - No JWT in URL: parent waits for iframe "ready" postMessage, then calls /api/token and sends token to iframe via postMessage.
+  - NOTE: raw string brace issues were fixed by switching to $$""" and adjusting braces.
+
+- EmbeddedPages/Program.cs
+  - Middleware sets CSP header: Content-Security-Policy: frame-ancestors {AllowedParentOrigin}
+  - GET / : redirects to /embedded
+  - GET /embedded : returns HTML+JS:
+    - reads Param1..3 from query string and shows them
+    - posts {type:'ready'} to parent
+    - listens for {type:'jwt', token:'...'} from parent (origin-checked)
+    - calls POST /api/validate with Authorization: Bearer <token>
+  - POST /api/validate :
+    - reads Authorization header Bearer token
+    - loads RSA public key PEM (configured path)
+    - validates issuer/audience/signature/lifetime
+    - checks claim SecretParam==SecretValue
+    - returns 200 OK with basic info, otherwise 401
+
+OPEN ITEMS / NEXT STEPS
+1) Add PEM files (provided by you) into solution root Keys/:
+   - Keys/mainapp-private.pem
+   - Keys/embeddedpages-public.pem
+
+2) Verify compilation:
+   - dotnet build JwtIframePoc.sln
+
+3) Run both apps (two terminals):
+   - MainApp: https://localhost:7053 (from launchSettings)
+   - EmbeddedPages: https://localhost:7129
+
+4) Navigate to MainApp / and confirm:
+   - iframe loads /embedded?Param1=Value1&Param2=Value2&Param3=Value3
+   - iframe sends ready
+   - parent fetches /api/token
+   - parent sends token to iframe via postMessage
+   - iframe POSTs /api/validate with Bearer token
+   - response shows HTTP 200 and JSON with valid=true and SecretParam
+
+5) If iframe does NOT load:
+   - check browser console for postMessage origin mismatch
+   - check EmbeddedPages CSP header frame-ancestors allows MainApp origin
+   - ensure both are using https (origins include scheme)
+
+6) Small cleanup to consider (optional for POC):
+   - In EmbeddedPages, remove unused variable "ex" in catch
+   - Add minimal error text response on 401 for easier demo
+
+NOTES
+- JWT is NOT passed via URL.
+- Token transport uses industry-standard Web Messaging (window.postMessage) between parent and iframe.
+- Validation is server-side in EmbeddedPages using Bearer header.
