@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MainApp (https)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/MainApp/bin/Debug/net8.0/MainApp.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/MainApp",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7053;http://localhost:5064",
+        "ASPNETCORE_HTTPS_PORT": "7053"
+      }
+    },
+    {
+      "name": "EmbeddedPages (https)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/EmbeddedPages/bin/Debug/net8.0/EmbeddedPages.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/EmbeddedPages",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7129;http://localhost:5127",
+        "ASPNETCORE_HTTPS_PORT": "7129"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch Both (MainApp + EmbeddedPages)",
+      "configurations": [
+        "EmbeddedPages (https)",
+        "MainApp (https)"
+      ]
+    }
+  ]
+}
